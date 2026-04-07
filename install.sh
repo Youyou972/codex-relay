@@ -1,72 +1,72 @@
 #!/bin/bash
 set -e
 
-PLUGIN_DIR="$HOME/.claude/plugins/local/codex-relay"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SETTINGS="$HOME/.claude/settings.json"
 
-echo "Installing codex-relay plugin..."
+echo "Installing codex-relay..."
 
-# 1. Create marketplace manifest (if not exists)
-MARKETPLACE_DIR="$HOME/.claude/plugins/local/.claude-plugin"
-mkdir -p "$MARKETPLACE_DIR"
-if [ ! -f "$MARKETPLACE_DIR/marketplace.json" ]; then
-  cat > "$MARKETPLACE_DIR/marketplace.json" << 'EOF'
+# 1. Marketplace manifest
+mkdir -p "$HOME/.claude/plugins/local/.claude-plugin"
+cat > "$HOME/.claude/plugins/local/.claude-plugin/marketplace.json" << 'EOF'
 {
   "name": "local-dev",
   "owner": { "name": "Team" },
-  "plugins": [
-    { "name": "codex-relay", "source": "./codex-relay" }
-  ]
+  "plugins": [{ "name": "codex-relay", "source": "./codex-relay" }]
 }
 EOF
-  echo "  Created marketplace manifest"
-else
-  echo "  Marketplace manifest already exists"
-fi
 
-# 2. Copy agent definition to global agents
+# 2. Agent definition
 mkdir -p "$HOME/.claude/agents"
 cp "$SCRIPT_DIR/agents/codex.md" "$HOME/.claude/agents/codex-teammate.md"
-echo "  Installed agent definition -> ~/.claude/agents/codex-teammate.md"
 
-# 3. Copy session reset hook
+# 3. Session hook
 mkdir -p "$HOME/.claude/hooks"
 cp "$SCRIPT_DIR/hooks/codex-relay-reset.sh" "$HOME/.claude/hooks/"
 chmod +x "$HOME/.claude/hooks/codex-relay-reset.sh"
-echo "  Installed session hook -> ~/.claude/hooks/codex-relay-reset.sh"
 
 # 4. Patch settings.json
-SETTINGS="$HOME/.claude/settings.json"
-if [ -f "$SETTINGS" ]; then
-  # Check if already configured
-  if grep -q "codex-relay@local-dev" "$SETTINGS"; then
-    echo "  Settings already configured"
-  else
-    echo ""
-    echo "  ⚠ Manual step required: Add the following to $SETTINGS"
-    echo ""
-    echo '  In "extraKnownMarketplaces", add:'
-    echo '    "local-dev": {'
-    echo '      "source": {'
-    echo '        "source": "directory",'
-    echo "        \"path\": \"$HOME/.claude/plugins/local\""
-    echo '      }'
-    echo '    }'
-    echo ""
-    echo '  In "enabledPlugins", add:'
-    echo '    "codex-relay@local-dev": true'
-    echo ""
-    echo '  In "hooks.SessionStart[0].hooks", add:'
-    echo '    { "type": "command", "command": "~/.claude/hooks/codex-relay-reset.sh" }'
-  fi
-else
-  echo "  ⚠ No settings.json found at $SETTINGS — create one manually"
+if [ ! -f "$SETTINGS" ]; then
+  echo '{}' > "$SETTINGS"
 fi
 
+python3 << PYEOF
+import json, sys
+
+with open("$SETTINGS") as f:
+    s = json.load(f)
+
+changed = False
+
+# Add local-dev marketplace
+mkts = s.setdefault("extraKnownMarketplaces", {})
+if "local-dev" not in mkts:
+    mkts["local-dev"] = {"source": {"source": "directory", "path": "$HOME/.claude/plugins/local"}}
+    changed = True
+
+# Enable plugin
+plugins = s.setdefault("enabledPlugins", {})
+if "codex-relay@local-dev" not in plugins:
+    plugins["codex-relay@local-dev"] = True
+    changed = True
+
+# Add session hook
+hooks = s.setdefault("hooks", {})
+session_hooks = hooks.setdefault("SessionStart", [{"hooks": []}])
+hook_list = session_hooks[0].setdefault("hooks", [])
+hook_cmd = "~/.claude/hooks/codex-relay-reset.sh"
+if not any(h.get("command") == hook_cmd for h in hook_list):
+    hook_list.append({"type": "command", "command": hook_cmd})
+    changed = True
+
+if changed:
+    with open("$SETTINGS", "w") as f:
+        json.dump(s, f, indent=2)
+        f.write("\n")
+
+PYEOF
+
+echo "Done! Restart Claude Code."
 echo ""
-echo "Done! Restart Claude Code to activate."
-echo ""
-echo "Prerequisites:"
-echo "  - Codex CLI: npm install -g @openai/codex"
-echo "  - Codex login: codex login"
-echo "  - Codex plugin: codex@openai-codex enabled in settings.json"
+echo "Prerequisites (if not already installed):"
+echo "  npm install -g @openai/codex && codex login"
