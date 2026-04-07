@@ -2,15 +2,14 @@
 set -e
 
 REPO="Youyou972/codex-relay"
-BRANCH="master"
-RAW="https://raw.githubusercontent.com/$REPO/$BRANCH"
+RAW="https://raw.githubusercontent.com/$REPO/HEAD"
 
 echo "Installing codex-relay..."
 echo ""
 
-# 1. Check prerequisites
+# Prerequisites
 if ! command -v codex &>/dev/null; then
-  echo "ERROR: Codex CLI not found. Install it first:"
+  echo "ERROR: Codex CLI not found."
   echo "  npm install -g @openai/codex && codex login"
   exit 1
 fi
@@ -20,54 +19,67 @@ if ! command -v claude &>/dev/null; then
   exit 1
 fi
 
-# 2. Add marketplace + install plugin via CLI
-echo "Adding marketplace..."
-claude plugin marketplace add "$REPO" 2>/dev/null || true
+if ! command -v node &>/dev/null; then
+  echo "ERROR: Node.js not found."
+  exit 1
+fi
 
-echo "Installing plugin..."
-claude plugin install codex-relay@codex-relay 2>/dev/null || true
+# Install plugins via CLI
+echo "Adding codex-relay marketplace..."
+if ! claude plugin marketplace add "$REPO"; then
+  echo "ERROR: Failed to add marketplace. Check network and repo access."
+  exit 1
+fi
 
-# 3. Ensure codex plugin is installed too
+echo "Installing codex-relay plugin..."
+if ! claude plugin install codex-relay@codex-relay; then
+  echo "ERROR: Failed to install codex-relay plugin."
+  exit 1
+fi
+
+echo "Ensuring codex plugin is installed..."
 claude plugin marketplace add openai/codex-plugin-cc 2>/dev/null || true
 claude plugin install codex@openai-codex 2>/dev/null || true
 
-# 4. Download agent definition (for Agent Teams support)
+# Download agent definition
 mkdir -p "$HOME/.claude/agents"
-curl -fsSL "$RAW/plugins/codex-relay/agents/codex.md" \
-  > "$HOME/.claude/agents/codex-teammate.md"
+if ! curl -fsSL "$RAW/plugins/codex-relay/agents/codex.md" > "$HOME/.claude/agents/codex-teammate.md"; then
+  echo "ERROR: Failed to download agent definition."
+  exit 1
+fi
 echo "Installed agent definition"
 
-# 5. Download session hook (thread reset per session)
+# Download session hook
 mkdir -p "$HOME/.claude/hooks"
-curl -fsSL "$RAW/plugins/codex-relay/hooks/codex-relay-reset.sh" \
-  > "$HOME/.claude/hooks/codex-relay-reset.sh"
+if ! curl -fsSL "$RAW/plugins/codex-relay/hooks/codex-relay-reset.sh" > "$HOME/.claude/hooks/codex-relay-reset.sh"; then
+  echo "ERROR: Failed to download session hook."
+  exit 1
+fi
 chmod +x "$HOME/.claude/hooks/codex-relay-reset.sh"
 echo "Installed session hook"
 
-# 6. Add session hook to settings if not present
+# Add session hook to settings.json using Node (no python3 dependency)
 SETTINGS="$HOME/.claude/settings.json"
-if [ -f "$SETTINGS" ] && command -v python3 &>/dev/null; then
-  python3 << 'PYEOF'
-import json, os
-
-settings_path = os.path.expanduser("~/.claude/settings.json")
-with open(settings_path) as f:
-    s = json.load(f)
-
-hooks = s.setdefault("hooks", {})
-session_hooks = hooks.setdefault("SessionStart", [{"hooks": []}])
-hook_list = session_hooks[0].setdefault("hooks", [])
-hook_cmd = "~/.claude/hooks/codex-relay-reset.sh"
-if not any(h.get("command") == hook_cmd for h in hook_list):
-    hook_list.append({"type": "command", "command": hook_cmd})
-    with open(settings_path, "w") as f:
-        json.dump(s, f, indent=2)
-        f.write("\n")
-    print("Added session hook to settings.json")
-else:
-    print("Session hook already configured")
-PYEOF
+if [ ! -f "$SETTINGS" ]; then
+  echo '{}' > "$SETTINGS"
 fi
+
+node -e "
+const fs = require('fs');
+const p = '$SETTINGS';
+const s = JSON.parse(fs.readFileSync(p, 'utf8'));
+const hooks = s.hooks = s.hooks || {};
+const ss = hooks.SessionStart = hooks.SessionStart || [{ hooks: [] }];
+const list = ss[0].hooks = ss[0].hooks || [];
+const cmd = '~/.claude/hooks/codex-relay-reset.sh';
+if (!list.some(h => h.command === cmd)) {
+  list.push({ type: 'command', command: cmd });
+  fs.writeFileSync(p, JSON.stringify(s, null, 2) + '\n');
+  console.log('Added session hook to settings.json');
+} else {
+  console.log('Session hook already configured');
+}
+"
 
 echo ""
 echo "Done! Restart Claude Code to activate."
