@@ -20,7 +20,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------
 // Codex plugin auto-detection
@@ -281,12 +280,19 @@ async function cmdChat(cwd, message, flags) {
         process.exit(1);
       }
     }
-    console.error(`Error: ${err.message}`);
+    if (flags.resume) {
+      console.error(
+        `Error: failed to resume thread "${flags.resume}": ${err.message}\n` +
+          `Hint: the thread may be stale or expired. Try again without --resume to start a new thread.`
+      );
+    } else {
+      console.error(`Error: ${err.message}`);
+    }
     process.exit(1);
   }
 }
 
-async function cmdThreads() {
+async function cmdThreads(cwd) {
   const state = loadState();
   const projects = Object.entries(state.projects);
 
@@ -297,7 +303,8 @@ async function cmdThreads() {
 
   console.log("Tracked Codex threads:\n");
   for (const [projectPath, info] of projects) {
-    console.log(`  Project: ${projectPath}`);
+    const isCurrent = cwd && projectPath === cwd;
+    console.log(`  Project: ${projectPath}${isCurrent ? " (current)" : ""}`);
     console.log(`  Thread:  ${info.activeThreadId ?? "(none)"}`);
     console.log(`  Model:   ${info.model ?? "(default)"}`);
     console.log(`  Used:    ${info.lastUsed ?? "unknown"}`);
@@ -414,7 +421,7 @@ async function main() {
       await cmdChat(cwd, message, flags);
       break;
     case "threads":
-      await cmdThreads();
+      await cmdThreads(cwd);
       break;
     case "status":
       await cmdStatus(cwd);
