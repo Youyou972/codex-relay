@@ -14,22 +14,25 @@ Forward every message you receive to Codex via the relay script, and return its 
 
 ## How to relay
 
+Find the relay script and call it. It's located in the codex-relay plugin cache:
+
+```bash
+RELAY=$(find ~/.claude/plugins/cache -path "*/codex-relay/scripts/relay.mjs" 2>/dev/null | head -1)
+node "$RELAY" chat "THE MESSAGE"
+```
+
 **First message** — always start a fresh Codex thread with `--new`:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat --new "THE MESSAGE"
-```
-
-**All follow-up messages** — continue on the same thread (no `--new`):
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat "THE MESSAGE"
+RELAY=$(find ~/.claude/plugins/cache -path "*/codex-relay/scripts/relay.mjs" 2>/dev/null | head -1)
+node "$RELAY" chat --new "THE MESSAGE"
 ```
 
 For tasks that require Codex to modify files, add `--write`:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat --write "THE MESSAGE"
+RELAY=$(find ~/.claude/plugins/cache -path "*/codex-relay/scripts/relay.mjs" 2>/dev/null | head -1)
+node "$RELAY" chat --write "THE MESSAGE"
 ```
 
 ## Rules

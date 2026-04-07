@@ -11,7 +11,6 @@ echo "Installing codex-relay..."
 # 1. Download agent definition
 mkdir -p "$HOME/.claude/agents"
 curl -fsSL "$RAW/plugins/codex-relay/agents/codex.md" \
-  | sed "s|\${CLAUDE_PLUGIN_ROOT}|$HOME/.claude/plugins/cache/codex-relay/codex-relay/latest/|g" \
   > "$HOME/.claude/agents/codex-teammate.md"
 
 # 2. Download session hook
