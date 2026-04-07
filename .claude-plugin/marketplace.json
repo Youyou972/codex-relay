@@ -1,0 +1,17 @@
+{
+  "name": "codex-relay",
+  "owner": { "name": "Yohann Blanchard" },
+  "metadata": {
+    "description": "Persistent conversation relay between Claude Code and Codex CLI",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "codex-relay",
+      "description": "Persistent conversation relay between Claude Code and Codex CLI. Manages long-lived threads that survive session restarts.",
+      "version": "0.1.0",
+      "author": { "name": "Yohann Blanchard" },
+      "source": "./plugins/codex-relay"
+    }
+  ]
+}
