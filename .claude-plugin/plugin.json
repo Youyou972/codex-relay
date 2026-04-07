@@ -1,0 +1,5 @@
+{
+  "name": "codex-relay",
+  "version": "0.1.0",
+  "description": "Persistent conversation relay between Claude Code and Codex CLI. Manages long-lived threads that survive session restarts."
+}
