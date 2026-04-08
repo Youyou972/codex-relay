@@ -218,7 +218,7 @@ async function cmdChat(cwd, message, flags) {
     resumeThreadId = projectState.activeThreadId;
   }
 
-  const sandbox = flags.write ? "write" : "read-only";
+  const sandbox = flags.write ? "workspace-write" : "read-only";
   const approvalPolicy = flags.write ? "on-failure" : "never";
 
   const threadName = lib.buildPersistentTaskThreadName(message);
