@@ -12,7 +12,7 @@
  * Chat flags:
  *   --new            Start a fresh thread (ignore saved state)
  *   --write          Allow file writes (sandbox=write, approvalPolicy=on-failure)
- *   --model <m>      Override model (e.g. gpt-5.4)
+ *   --model <m>      Override model (e.g. gpt-5.5, gpt-5.4)
  *   --effort <e>     Override effort level
  *   --resume <id>    Resume a specific thread by ID
  */
@@ -365,7 +365,9 @@ Usage:
 Chat flags:
   --new              Start a fresh thread (discard saved thread)
   --write            Allow file writes (sandbox=write, approvalPolicy=on-failure)
-  --model <model>    Override model (e.g. gpt-5.4)
+  --model <model>    Override model (e.g. gpt-5.5, gpt-5.4)
+  --gpt55            Shortcut for --model gpt-5.5
+  --gpt54            Shortcut for --model gpt-5.4
   --effort <level>   Override effort level
   --resume <id>      Resume a specific thread by ID
 `);
@@ -393,6 +395,12 @@ function parseArgs(argv) {
     } else if (arg === "--model" && i + 1 < args.length) {
       flags.model = args[i + 1];
       i += 2;
+    } else if (arg === "--gpt55" || arg === "--gpt-5.5") {
+      flags.model = "gpt-5.5";
+      i++;
+    } else if (arg === "--gpt54" || arg === "--gpt-5.4") {
+      flags.model = "gpt-5.4";
+      i++;
     } else if (arg === "--effort" && i + 1 < args.length) {
       flags.effort = args[i + 1];
       i += 2;

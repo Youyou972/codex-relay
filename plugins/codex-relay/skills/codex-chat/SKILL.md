@@ -37,6 +37,21 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat --write "your message here"
 node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat --resume <thread-id> "your message here"
 ```
 
+### Pick a specific model
+
+The default model comes from `~/.codex/config.toml`. Override per-call with `--model`, or use the shortcuts:
+
+```bash
+# Latest — GPT-5.5
+node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat --gpt55 "your message here"
+
+# Previous — GPT-5.4
+node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat --gpt54 "your message here"
+
+# Any model name
+node "${CLAUDE_PLUGIN_ROOT}/scripts/relay.mjs" chat --model gpt-5.5 "your message here"
+```
+
 ### List threads
 
 ```bash
