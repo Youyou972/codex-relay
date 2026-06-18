@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude Code Spawn"
+  short_description: "Spawn and manage Claude Code instances with task-appropriate model selection."
+  default_prompt: "Use this skill when spawning or managing Claude Code instances. Choose the Claude model based on task complexity: latest Opus alias for complex work, latest Sonnet alias for routine work, and Haiku family models for cheap low-risk checks when available."
